@@ -32,6 +32,27 @@ commands = {
 
 last_update_id = None
 
+def send_menu_keyboard(chat_id):
+    keyboard = {
+        "keyboard": [
+            ["🪙 All Miners", "₿ BTC Miners"],
+            ["🚀 Doge/LTC Miners", "🧪 ALT Miners"],
+            ["🔐 ALEO", "⚡ ALPH"],
+            ["⛏️ KAS", "💾 ETC"],
+            ["🇺🇸 USA Stock", "🔌 PDUs"],
+            ["🔧 Transformers", "🧩 Parts"],
+            ["🛒 Shop Now"]
+        ],
+        "resize_keyboard": True,
+        "one_time_keyboard": False
+    }
+
+    message = (
+        "👇 Select a category from the menu below to get real-time prices:\n"
+        "(Or use the /start command for inline buttons)"
+    )
+    send_reply(chat_id, message, keyboard)
+    
 def send_reply(chat_id, message, keyboard=None):
     url = f"{BOT_API}/sendMessage"
     data = {
@@ -115,9 +136,12 @@ def check_user_messages():
                 chat_id = message["chat"]["id"]
                 cmd = text.strip().lower()
 
+                if cmd == "/menu":
+                    send_menu_keyboard(chat_id)
+                    
                 if cmd == "/start":
                     welcome = (
-                        "<b>Welcome to the Refined Capital Miner Prices Bot 🧠⛏️</b>\n\n"
+                        "<b>Welcome to the Refined Capital Mining Bot 🧠⛏️</b>\n\n"
                         "Use this bot to check real-time pricing and availability for crypto mining hardware and infrastructure.\n\n"
                         "Choose a category below to get started:\n\n"
                         "<i>Powered by Refined Capital</i>"
@@ -160,6 +184,30 @@ def check_user_messages():
                 elif cmd in commands:
                     reply = fetch_category_prices(commands[cmd])
                     send_reply(chat_id, reply)
+
+            menu_map = {
+                "🪙 all miners": "/allminerprices",
+                "₿ btc miners": "/btcminerprices",
+                "🚀 doge/ltc miners": "/dogeminerprices",
+                "🧪 alt miners": "/altminerprices",
+                "🔐 aleo": "/aleominerprices",
+                "⚡ alph": "/alphminerprices",
+                "💾 etc": "/etcminerprices",
+                "⛏️ kas": "/kasminerprices",
+                "🇺🇸 usa stock": "/usastockprices",
+                "🔌 pdus": "/pduprices",
+                "🔧 transformers": "/xfmrprices",
+                "🧩 parts": "/partsprices"
+            }
+
+            if cmd in menu_map:
+                mapped_cmd = menu_map[cmd]
+                if mapped_cmd in commands:
+                    reply = fetch_category_prices(commands[mapped_cmd])
+                    send_reply(chat_id, reply)
+
+elif cmd == "🛒 shop now":
+    send_reply(chat_id, "🛒 Visit our full store: https://refined-capital.com/shop")
 
             # Handle button presses
             if "callback_query" in update:
