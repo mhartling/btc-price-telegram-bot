@@ -13,6 +13,9 @@ WC_API_URL = os.environ.get("WC_API_URL")
 WC_API_KEY = os.environ.get("WC_API_KEY")
 WC_API_SECRET = os.environ.get("WC_API_SECRET")
 
+# In-memory store for tracking user names
+user_names = {}
+
 # Commands mapped to category IDs
 commands = {
     "/allminerprices": 20,
@@ -103,7 +106,7 @@ def send_main_menu(chat_id):
     }
     message = (
         "<b>Welcome to the Refined Capital Mining Bot \U0001F9E0\u26CF\ufe0f</b>\n\n"
-        "Use this bot to check real-time pricing and availability for crypto mining hardware and infrastructure.\n\n"
+        "Use this bot to check real-time pricing and manage your mining account.\n\n"
         "Choose an option below to get started:\n"
     )
     send_reply(chat_id, message, keyboard)
@@ -122,8 +125,19 @@ def send_prices_menu(chat_id):
         "resize_keyboard": True,
         "one_time_keyboard": False
     }
-    message = "\u2B07 Choose a category below:"
-    send_reply(chat_id, message, keyboard)
+    send_reply(chat_id, "\u2B07 Choose a category below:", keyboard)
+
+def send_hosting_menu(chat_id):
+    keyboard = {
+        "keyboard": [
+            ["🧾 My Hosting Invoices"],
+            ["🖥️ My Miners"],
+            ["📦 My Orders"]
+        ],
+        "resize_keyboard": True,
+        "one_time_keyboard": False
+    }
+    send_reply(chat_id, "Great. Now please choose one of the options below:", keyboard)
 
 def check_user_messages():
     global last_update_id
@@ -151,6 +165,24 @@ def check_user_messages():
                 elif cmd == "🔍 see prices":
                     send_prices_menu(chat_id)
 
+                elif cmd == "👥 hosting clients":
+                    user_names[chat_id] = None
+                    send_reply(chat_id, "Please enter your first and last name to continue:")
+
+                elif chat_id in user_names and user_names[chat_id] is None:
+                    user_names[chat_id] = text.strip()
+                    send_reply(chat_id, f"Thanks, {user_names[chat_id]}!")
+                    send_hosting_menu(chat_id)
+
+                elif cmd == "🧾 my hosting invoices":
+                    send_reply(chat_id, "(Square API) Fetching invoices for: " + user_names.get(chat_id, "Unknown"))
+
+                elif cmd == "🖥️ my miners":
+                    send_reply(chat_id, "(MaintainX API) Looking up miners for: " + user_names.get(chat_id, "Unknown"))
+
+                elif cmd == "📦 my orders":
+                    send_reply(chat_id, "(WooCommerce API) Fetching orders for: " + user_names.get(chat_id, "Unknown"))
+
                 elif cmd == "🛍 shop now":
                     send_reply(chat_id, "\U0001F6D2 Visit our full store: https://refined-capital.com/shop")
 
@@ -169,21 +201,11 @@ def check_user_messages():
                         "\U0001F527 transformers": "/xfmrprices",
                         "\U0001FA99 parts": "/partsprices"
                     }
-
                     if cmd in menu_map:
                         mapped_cmd = menu_map[cmd]
                         if mapped_cmd in commands:
                             reply = fetch_category_prices(commands[mapped_cmd])
                             send_reply(chat_id, reply)
-
-            if "callback_query" in update:
-                callback = update["callback_query"]
-                data = callback.get("data", "")
-                chat_id = callback["message"]["chat"]["id"]
-
-                if data in commands:
-                    reply = fetch_category_prices(commands[data])
-                    send_reply(chat_id, reply)
 
     except Exception as e:
         print(f"[ERROR] Exception checking messages: {e}", flush=True)
