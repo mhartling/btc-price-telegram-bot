@@ -32,27 +32,6 @@ commands = {
 
 last_update_id = None
 
-def send_menu_keyboard(chat_id):
-    keyboard = {
-        "keyboard": [
-            ["\U0001FA99 All Miners", "₿ BTC Miners"],
-            ["\U0001F680 Doge/LTC Miners", "\U0001F9EA ALT Miners"],
-            ["\U0001F510 ALEO", "⚡ ALPH"],
-            ["\u26CF️ KAS", "\U0001F4BE ETC"],
-            ["\U0001F1FA\U0001F1F8 USA Stock", "\U0001F50C PDUs"],
-            ["\U0001F527 Transformers", "\U0001FA99 Parts"],
-            ["\U0001F6D2 Shop Now"]
-        ],
-        "resize_keyboard": True,
-        "one_time_keyboard": False
-    }
-
-    message = (
-        "\u2B07 Select a category from the menu below to get real-time prices:\n"
-        "(Or use the /start command for inline buttons)"
-    )
-    send_reply(chat_id, message, keyboard)
-
 def send_reply(chat_id, message, keyboard=None):
     url = f"{BOT_API}/sendMessage"
     data = {
@@ -133,18 +112,31 @@ def check_user_messages():
                 chat_id = message["chat"]["id"]
                 cmd = text.strip().lower()
 
-                if cmd == "/menu":
-                    send_menu_keyboard(chat_id)
-
-                elif cmd == "/start":
+                if cmd == "/start":
                     welcome = (
                         "<b>Welcome to the Refined Capital Mining Bot \U0001F9E0\u26CF\ufe0f</b>\n\n"
                         "Use this bot to check real-time pricing and availability for crypto mining hardware and infrastructure.\n\n"
-                        "Choose a category below to get started:\n\n"
-                        "<i>Powered by Refined Capital</i>"
+                        "Choose an option below to get started:\n"
                     )
-
                     keyboard = {
+                        "inline_keyboard": [
+                            [
+                                {"text": "\U0001F50D See Prices", "callback_data": "menu_prices"}
+                            ],
+                            [
+                                {"text": "👥 Hosting Clients", "callback_data": "hosting_clients"}
+                            ]
+                        ]
+                    }
+                    send_reply(chat_id, welcome, keyboard)
+
+            if "callback_query" in update:
+                callback = update["callback_query"]
+                data = callback.get("data", "")
+                chat_id = callback["message"]["chat"]["id"]
+
+                if data == "menu_prices":
+                    category_keyboard = {
                         "inline_keyboard": [
                             [
                                 {"text": "\U0001FA99 All Miners", "callback_data": "/allminerprices"},
@@ -175,43 +167,9 @@ def check_user_messages():
                             ]
                         ]
                     }
-                    send_reply(chat_id, welcome, keyboard)
+                    send_reply(chat_id, "\u2B07 Choose a category below:", category_keyboard)
 
-                elif cmd in commands:
-                    reply = fetch_category_prices(commands[cmd])
-                    send_reply(chat_id, reply)
-
-                else:
-                    menu_map = {
-                        "\U0001FA99 all miners": "/allminerprices",
-                        "₿ btc miners": "/btcminerprices",
-                        "\U0001F680 doge/ltc miners": "/dogeminerprices",
-                        "\U0001F9EA alt miners": "/altminerprices",
-                        "\U0001F510 aleo": "/aleominerprices",
-                        "⚡ alph": "/alphminerprices",
-                        "\U0001F4BE etc": "/etcminerprices",
-                        "⛏️ kas": "/kasminerprices",
-                        "\U0001F1FA\U0001F1F8 usa stock": "/usastockprices",
-                        "\U0001F50C pdus": "/pduprices",
-                        "\U0001F527 transformers": "/xfmrprices",
-                        "\U0001FA99 parts": "/partsprices"
-                    }
-
-                    if cmd in menu_map:
-                        mapped_cmd = menu_map[cmd]
-                        if mapped_cmd in commands:
-                            reply = fetch_category_prices(commands[mapped_cmd])
-                            send_reply(chat_id, reply)
-
-                    elif cmd == "\U0001F6D2 shop now":
-                        send_reply(chat_id, "\U0001F6D2 Visit our full store: https://refined-capital.com/shop")
-
-            if "callback_query" in update:
-                callback = update["callback_query"]
-                data = callback.get("data", "")
-                chat_id = callback["message"]["chat"]["id"]
-
-                if data in commands:
+                elif data in commands:
                     reply = fetch_category_prices(commands[data])
                     send_reply(chat_id, reply)
 
