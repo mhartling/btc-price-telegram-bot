@@ -83,18 +83,21 @@ def check_user_messages():
 
     try:
         response = requests.get(url, params=params).json()
-        for update in response.get("result", []):
-            update_id = update["update_id"]
+        results = response.get("result", [])
+
+        for update in results:
+            update_id = update.get("update_id")
             message = update.get("message", {})
             text = message.get("text", "")
             chat_id = message.get("chat", {}).get("id")
 
+            # Only reply if the text is /prices
             if text.strip().lower() == "/prices":
-                print("[DEBUG] Received /prices command", flush=True)
+                print(f"[DEBUG] Received /prices from chat {chat_id}", flush=True)
                 reply = fetch_eligible_products()
                 send_reply(chat_id, reply)
 
-            # After processing, move to the next update
+            # Move the update ID forward regardless of command
             last_update_id = update_id
 
     except Exception as e:
