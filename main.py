@@ -103,6 +103,21 @@ def check_user_messages():
     except Exception as e:
         print(f"[ERROR] Exception checking messages: {e}", flush=True)
 
+def flush_old_messages():
+    global last_update_id
+    url = f"{BOT_API}/getUpdates"
+    response = requests.get(url).json()
+    results = response.get("result", [])
+    if results:
+        last_update_id = results[-1]["update_id"]
+        print(f"[INFO] Flushed old messages up to update_id: {last_update_id}", flush=True)
+
+flush_old_messages()
+
+while True:
+    check_user_messages()
+    time.sleep(2)
+
 # Start the bot loop
 while True:
     try:
