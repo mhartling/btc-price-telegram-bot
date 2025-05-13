@@ -16,6 +16,31 @@ WC_CATEGORY_ID = os.environ.get("WC_CATEGORY_ID")
 # Used to avoid processing the same message multiple times
 last_update_id = None
 
+if cmd == "/start":
+    welcome = (
+        "<b>Welcome to the Refined Capital Mining Bot 🧠⛏️</b>\n\n"
+        "Use this bot to check real-time availability and pricing for mining hardware and power equipment.\n\n"
+        "<b>Commands:</b>\n"
+        "🟩 <b>Miners by Category:</b>\n"
+        "/allminerprices – All Miners\n"
+        "/btcminerprices – BTC Miners\n"
+        "/dogeminerprices – LTC & DOGE Miners\n"
+        "/altminerprices – ALT Miners\n"
+        "/aleominerprices – ALEO Miners\n"
+        "/alphminerprices – ALPH Miners\n"
+        "/etcminerprices – ETC Miners\n"
+        "/kdaminerprices – KDA Miners\n"
+        "/kasminerprices – KAS Miners\n\n"
+        "🟦 <b>Other Hardware:</b>\n"
+        "/usastockprices – USA Stock Only\n"
+        "/pduprices – PDUs\n"
+        "/xfmrprices – Transformers\n"
+        "/partsprices – Parts & Accessories\n\n"
+        "Type any of the above commands to get the latest pricing and stock for that category.\n\n"
+        "<i>Powered by Refined Capital</i>\n"
+    )
+    send_reply(chat_id, welcome)
+    
 def send_reply(chat_id, message):
     url = f"{BOT_API}/sendMessage"
     data = {
