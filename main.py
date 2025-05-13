@@ -18,11 +18,16 @@ def send_telegram_message(message):
         "chat_id": CHANNEL_ID,
         "text": message
     }
-    requests.post(url, data=data)
+    response = requests.post(url, data=data)
+    print("Telegram response:", response.text)  # <-- Helpful log
+
+# Send test message once when script starts
+send_telegram_message("✅ BTC Price Bot is running successfully!")
 
 def track_price():
     global last_alert_price
     current_price = get_btc_price()
+    print(f"Current BTC Price: ${current_price}")  # Debug log
     rounded_price = round(current_price / 1000) * 1000
 
     if last_alert_price is None:
