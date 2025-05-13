@@ -20,6 +20,54 @@ def get_btc_price():
     response = requests.get(url).json()
     return response['bitcoin']['usd']
 
+def get_all_miners():
+    url = f"{WC_API_URL}/products"
+    auth = HTTPBasicAuth(WC_API_KEY, WC_API_SECRET)
+
+    # Build query parameters
+    params = {
+        "per_page": 20,
+        "orderby": "date",
+        "order": "desc"
+    }
+
+    if WC_CATEGORY_ID:
+        params["category"] = WC_CATEGORY_ID
+
+    try:
+        print("[DEBUG] Sending request to WooCommerce...", flush=True)
+        print(f"[DEBUG] URL: {url}", flush=True)
+        print(f"[DEBUG] Params: {params}", flush=True)
+
+        response = requests.get(url, params=params, auth=auth)
+
+        print(f"[DEBUG] Response status code: {response.status_code}", flush=True)
+
+        if response.status_code != 200:
+            print(f"[ERROR] WooCommerce API error: {response.text[:500]}", flush=True)
+            return f"Error fetching miners: {response.status_code}"
+
+        products = response.json()
+
+        if not products:
+            print("[DEBUG] No products found in response.", flush=True)
+            return "No miners found in this category."
+
+        message_lines = ["Current Miner Prices:"]
+        for product in products:
+            name = product.get("name", "Unnamed Product")
+            price = product.get("price", "N/A")
+            stock_status = product.get("stock_status", "unknown")
+            message_lines.append(f"{name} - ${price} ({stock_status})")
+
+        print(f"[DEBUG] Successfully fetched {len(products)} products.", flush=True)
+
+        return "\n".join(message_lines)
+
+    except Exception as e:
+        print(f"[ERROR] Exception occurred during WooCommerce API request: {e}", flush=True)
+        return "An error occurred while fetching miner data."
+
 def send_telegram_message(message):
     url = f"{BOT_API}/sendMessage"
     data = {
@@ -77,54 +125,6 @@ def send_reply(chat_id, message):
         "text": message
     }
     requests.post(url, data=data)
-
-def get_all_miners():
-    url = f"{WC_API_URL}/products"
-    auth = HTTPBasicAuth(WC_API_KEY, WC_API_SECRET)
-
-    # Build query parameters
-    params = {
-        "per_page": 20,
-        "orderby": "date",
-        "order": "desc"
-    }
-
-    if WC_CATEGORY_ID:
-        params["category"] = WC_CATEGORY_ID
-
-    try:
-        print("[DEBUG] Sending request to WooCommerce...", flush=True)
-        print(f"[DEBUG] URL: {url}", flush=True)
-        print(f"[DEBUG] Params: {params}", flush=True)
-
-        response = requests.get(url, params=params, auth=auth)
-
-        print(f"[DEBUG] Response status code: {response.status_code}", flush=True)
-
-        if response.status_code != 200:
-            print(f"[ERROR] WooCommerce API error: {response.text[:500]}", flush=True)
-            return f"Error fetching miners: {response.status_code}"
-
-        products = response.json()
-
-        if not products:
-            print("[DEBUG] No products found in response.", flush=True)
-            return "No miners found in this category."
-
-        message_lines = ["Current Miner Prices:"]
-        for product in products:
-            name = product.get("name", "Unnamed Product")
-            price = product.get("price", "N/A")
-            stock_status = product.get("stock_status", "unknown")
-            message_lines.append(f"{name} - ${price} ({stock_status})")
-
-        print(f"[DEBUG] Successfully fetched {len(products)} products.", flush=True)
-
-        return "\n".join(message_lines)
-
-    except Exception as e:
-        print(f"[ERROR] Exception occurred during WooCommerce API request: {e}", flush=True)
-        return "An error occurred while fetching miner data."
         
 # Start the loop
 while True:
