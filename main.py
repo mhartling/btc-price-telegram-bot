@@ -3,6 +3,7 @@ import time
 import json
 import requests
 from requests.auth import HTTPBasicAuth
+from datetime import datetime, timedelta
 
 # Telegram Bot Setup
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
@@ -95,65 +96,14 @@ def fetch_category_prices(category_id):
         print(f"[ERROR] Exception fetching category {category_id}: {e}", flush=True)
         return "Error fetching product data."
 
-def send_main_menu(chat_id):
-    keyboard = {
-        "keyboard": [
-            ["\U0001F50D See Prices"],
-            ["👥 Hosting Clients"]
-        ],
-        "resize_keyboard": True,
-        "one_time_keyboard": False
-    }
-    message = (
-        "<b>Welcome to the Refined Capital Mining Bot \U0001F9E0\u26CF\ufe0f</b>\n\n"
-        "Use this bot to check real-time pricing and manage your mining account.\n\n"
-        "Choose an option below to get started:\n"
-    )
-    send_reply(chat_id, message, keyboard)
-
-def send_prices_menu(chat_id):
-    keyboard = {
-        "keyboard": [
-            ["\U0001FA99 All Miners", "₿ BTC Miners"],
-            ["\U0001F680 Doge/LTC Miners", "\U0001F9EA ALT Miners"],
-            ["\U0001F510 ALEO", "⚡ ALPH"],
-            ["\u26CF️ KAS", "\U0001F4BE ETC"],
-            ["\U0001F1FA\U0001F1F8 USA Stock", "\U0001F50C PDUs"],
-            ["\U0001F527 Transformers", "\U0001FA99 Parts"],
-            ["\U0001F6D2 Shop Now"]
-        ],
-        "resize_keyboard": True,
-        "one_time_keyboard": False
-    }
-    send_reply(chat_id, "\u2B07 Choose a category below:", keyboard)
-
-def send_hosting_menu(chat_id):
-    keyboard = {
-        "keyboard": [
-            ["🧾 My Hosting Invoices"],
-            ["🖥️ My Miners"],
-            ["📦 My Orders"]
-        ],
-        "resize_keyboard": True,
-        "one_time_keyboard": False
-    }
-    send_reply(chat_id, "Great. Now please choose one of the options below:", keyboard)
-
-from datetime import datetime, timedelta
-
 def fetch_square_invoices(full_name):
     try:
-        # Step 1: Search for customer by name
         headers = {
             "Authorization": f"Bearer {os.environ.get('SQUARE_API_KEY')}",
             "Content-Type": "application/json"
         }
 
         search_url = "https://connect.squareup.com/v2/customers/search"
-        name_parts = full_name.strip().split()
-        if len(name_parts) < 2:
-            return "Please provide both first and last name."
-
         query = {
             "query": {
                 "filter": {
@@ -174,7 +124,6 @@ def fetch_square_invoices(full_name):
 
         customer_id = customers[0]["id"]
 
-        # Step 2: Fetch all invoices for this customer
         location_id = os.environ.get("SQUARE_LOCATION_ID")
         invoices_url = f"https://connect.squareup.com/v2/invoices?location_id={location_id}"
         response = requests.get(invoices_url, headers=headers)
@@ -221,6 +170,49 @@ def fetch_square_invoices(full_name):
         print(f"[ERROR] Square API: {e}", flush=True)
         return "An error occurred while retrieving your invoices."
 
+def send_main_menu(chat_id):
+    keyboard = {
+        "keyboard": [
+            ["\U0001F50D See Prices"],
+            ["👥 Hosting Clients"]
+        ],
+        "resize_keyboard": True,
+        "one_time_keyboard": False
+    }
+    message = (
+        "<b>Welcome to the Refined Capital Mining Bot \U0001F9E0\u26CF\ufe0f</b>\n\n"
+        "Use this bot to check real-time pricing and manage your mining account.\n\n"
+        "Choose an option below to get started:\n"
+    )
+    send_reply(chat_id, message, keyboard)
+
+def send_prices_menu(chat_id):
+    keyboard = {
+        "keyboard": [
+            ["\U0001FA99 All Miners", "₿ BTC Miners"],
+            ["\U0001F680 Doge/LTC Miners", "\U0001F9EA ALT Miners"],
+            ["\U0001F510 ALEO", "⚡ ALPH"],
+            ["\u26CF️ KAS", "\U0001F4BE ETC"],
+            ["\U0001F1FA\U0001F1F8 USA Stock", "\U0001F50C PDUs"],
+            ["\U0001F527 Transformers", "\U0001FA99 Parts"],
+            ["\U0001F6D2 Shop Now"]
+        ],
+        "resize_keyboard": True,
+        "one_time_keyboard": False
+    }
+    send_reply(chat_id, "\u2B07 Choose a category below:", keyboard)
+
+def send_hosting_menu(chat_id):
+    keyboard = {
+        "keyboard": [
+            ["🧾 My Hosting Invoices"],
+            ["🖥️ My Miners"],
+            ["📦 My Orders"]
+        ],
+        "resize_keyboard": True,
+        "one_time_keyboard": False
+    }
+    send_reply(chat_id, "Great. Now please choose one of the options below:", keyboard)
 
 def check_user_messages():
     global last_update_id
@@ -257,10 +249,10 @@ def check_user_messages():
                     send_reply(chat_id, f"Thanks, {user_names[chat_id]}!")
                     send_hosting_menu(chat_id)
 
-                elif cmd == \"🧾 my hosting invoices\":
+                elif cmd == "🧾 my hosting invoices":
                     name = user_names.get(chat_id)
                     if not name:
-                        send_reply(chat_id, \"We couldn't find your name. Please start again with /start.\")
+                        send_reply(chat_id, "We couldn't find your name. Please start again with /start.")
                     else:
                         reply = fetch_square_invoices(name)
                         send_reply(chat_id, reply)
