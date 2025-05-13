@@ -1,65 +1,85 @@
 import os
+import time
 import requests
 from requests.auth import HTTPBasicAuth
 
-# Load WooCommerce API credentials and endpoint from environment variables
-WC_API_URL = os.environ.get("WC_API_URL")  # Example: https://refined-capital.com/wp-json/wc/v3
+# Telegram Bot Setup
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+BOT_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
+
+# WooCommerce API Setup
+WC_API_URL = os.environ.get("WC_API_URL")
 WC_API_KEY = os.environ.get("WC_API_KEY")
 WC_API_SECRET = os.environ.get("WC_API_SECRET")
-WC_CATEGORY_ID = os.environ.get("WC_CATEGORY_ID")  # Numeric ID or slug for the "miners" category
+WC_CATEGORY_ID = os.environ.get("WC_CATEGORY_ID")
 
-def get_valid_miner_products():
+# Used to avoid processing the same Telegram message multiple times
+last_update_id = None
+
+def send_reply(chat_id, message):
+    url = f"{BOT_API}/sendMessage"
+    data = {
+        "chat_id": chat_id,
+        "text": message
+    }
+    requests.post(url, data=data)
+
+def fetch_eligible_products():
     url = f"{WC_API_URL}/products"
     auth = HTTPBasicAuth(WC_API_KEY, WC_API_SECRET)
-
     params = {
         "category": WC_CATEGORY_ID,
-        "per_page": 100,         # Max 100 per page
-        "status": "publish",     # Only published products
-        "orderby": "date",
-        "order": "desc"
+        "status": "publish",
+        "per_page": 50
     }
 
     try:
-        print("[INFO] Fetching products from WooCommerce...", flush=True)
         response = requests.get(url, params=params, auth=auth)
-
-        print(f"[DEBUG] Status code: {response.status_code}", flush=True)
         if response.status_code != 200:
-            print(f"[ERROR] Failed request: {response.text}", flush=True)
-            return
+            print(f"[ERROR] WooCommerce API: {response.status_code} - {response.text}", flush=True)
+            return "Failed to retrieve products."
 
         products = response.json()
-        print(f"[INFO] Retrieved {len(products)} products.", flush=True)
+        filtered = []
 
-        valid_products = []
+        for p in products:
+            price = float(p.get("price") or 0)
+            stock_status = p.get("stock_status")
+            if price > 0 and stock_status == "instock":
+                filtered.append(f"{p['name']} - ${price}")
 
-        for product in products:
-            name = product.get("name")
-            price = product.get("price")
-            stock_status = product.get("stock_status")
+        if not filtered:
+            return "No miners currently in stock with valid prices."
 
-            # Filter conditions
-            if not price or price == "0":
-                continue
-            if stock_status != "instock":
-                continue
-
-            valid_products.append({
-                "name": name,
-                "price": price,
-                "stock_status": stock_status
-            })
-
-        print(f"[INFO] Filtered to {len(valid_products)} valid products.", flush=True)
-
-        # Output result
-        for p in valid_products:
-            print(f"{p['name']} - ${p['price']} ({p['stock_status']})", flush=True)
+        return "Current Miner Prices:\n" + "\n".join(filtered)
 
     except Exception as e:
-        print(f"[ERROR] Exception occurred: {e}", flush=True)
+        print(f"[ERROR] Exception fetching products: {e}", flush=True)
+        return "Error fetching product data."
 
-# Run script
-if __name__ == "__main__":
-    get_valid_miner_products()
+def check_user_messages():
+    global last_update_id
+    url = f"{BOT_API}/getUpdates"
+    params = {"offset": last_update_id + 1 if last_update_id else None}
+    try:
+        response = requests.get(url, params=params).json()
+        for update in response.get("result", []):
+            last_update_id = update["update_id"]
+            message = update.get("message", {})
+            text = message.get("text", "")
+            chat_id = message.get("chat", {}).get("id")
+
+            if text.strip().lower() == "/prices":
+                reply = fetch_eligible_products()
+                send_reply(chat_id, reply)
+
+    except Exception as e:
+        print(f"[ERROR] Exception checking messages: {e}", flush=True)
+
+# Start the bot loop
+while True:
+    try:
+        check_user_messages()
+    except Exception as e:
+        print(f"[ERROR] Bot loop crashed: {e}", flush=True)
+    time.sleep(10)
