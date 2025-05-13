@@ -88,109 +88,72 @@ def check_user_messages():
         results = response.get("result", [])
 
         for update in results:
-            update_id = update.get("update_id")
-            message = update.get("message", {})
-            text = message.get("text", "")
-            chat_id = message.get("chat", {}).get("id")
+            # Update last_update_id regardless of message or callback
+            last_update_id = update.get("update_id")
 
-            commands = {
-                "/allminerprices": 20,        # You can use this as default All Miners category
-                "/btcminerprices": 16,
-                "/dogeminerprices": 21,
-                "/altminerprices": 22,
-                "/aleominerprices": 337,
-                "/alphminerprices": 128,
-                "/etcminerprices": 189,
-                "/kdaminerprices": 192,
-                "/kasminerprices": 102,
-                "/usastockprices": 199,
-                "/pduprices": 105,
-                "/xfmrprices": 106,
-                "/partsprices": 23
-            }
-            
-            cmd = text.strip().lower()
-            if cmd == "/start":
-                welcome = (
-                    "<b>Welcome to the Refined Capital Mining Bot 🧠⛏️</b>\n\n"
-                    "Use this bot to check real-time pricing and availability for crypto mining hardware and infrastructure.\n\n"
-                    "Choose a category below to get started:\n\n"
-                    "<i>Powered by Refined Capital</i>"
-                )
-            
-                keyboard = {
-                    "inline_keyboard": [
-                        [
-                            {"text": "🪙 All Miners", "callback_data": "/allminerprices"},
-                            {"text": "₿ BTC Miners", "callback_data": "/btcminerprices"}
-                        ],
-                        [
-                            {"text": "🚀 Doge/LTC Miners", "callback_data": "/dogeminerprices"},
-                            {"text": "🧪 ALT Miners", "callback_data": "/altminerprices"}
-                        ],
-                        [
-                            {"text": "🔐 ALEO", "callback_data": "/aleominerprices"},
-                            {"text": "⚡ ALPH", "callback_data": "/alphminerprices"}
-                        ],
-                        [
-                            {"text": "⛏️ KAS", "callback_data": "/kasminerprices"},
-                            {"text": "💾 ETC", "callback_data": "/etcminerprices"}
-                        ],
-                        [
-                            {"text": "🇺🇸 USA Stock", "callback_data": "/usastockprices"},
-                            {"text": "🔌 PDUs", "callback_data": "/pduprices"}
-                        ],
-                        [
-                            {"text": "🔧 Transformers", "callback_data": "/xfmrprices"},
-                            {"text": "🧩 Parts", "callback_data": "/partsprices"}
-                        ],
-                        [
-                            {"text": "🛒 Shop Now", "url": "https://refined-capital.com/shop"}
+            # Handle regular text message commands
+            if "message" in update:
+                message = update["message"]
+                text = message.get("text", "")
+                chat_id = message["chat"]["id"]
+                cmd = text.strip().lower()
+
+                if cmd == "/start":
+                    welcome = (
+                        "<b>Welcome to the Refined Capital Mining Bot 🧠⛏️</b>\n\n"
+                        "Use this bot to check real-time pricing and availability for crypto mining hardware and infrastructure.\n\n"
+                        "Choose a category below to get started:\n\n"
+                        "<i>Powered by Refined Capital</i>"
+                    )
+
+                    keyboard = {
+                        "inline_keyboard": [
+                            [
+                                {"text": "🪙 All Miners", "callback_data": "/allminerprices"},
+                                {"text": "₿ BTC Miners", "callback_data": "/btcminerprices"}
+                            ],
+                            [
+                                {"text": "🚀 Doge/LTC Miners", "callback_data": "/dogeminerprices"},
+                                {"text": "🧪 ALT Miners", "callback_data": "/altminerprices"}
+                            ],
+                            [
+                                {"text": "🔐 ALEO", "callback_data": "/aleominerprices"},
+                                {"text": "⚡ ALPH", "callback_data": "/alphminerprices"}
+                            ],
+                            [
+                                {"text": "⛏️ KAS", "callback_data": "/kasminerprices"},
+                                {"text": "💾 ETC", "callback_data": "/etcminerprices"}
+                            ],
+                            [
+                                {"text": "🇺🇸 USA Stock", "callback_data": "/usastockprices"},
+                                {"text": "🔌 PDUs", "callback_data": "/pduprices"}
+                            ],
+                            [
+                                {"text": "🔧 Transformers", "callback_data": "/xfmrprices"},
+                                {"text": "🧩 Parts", "callback_data": "/partsprices"}
+                            ],
+                            [
+                                {"text": "🛒 Shop Now", "url": "https://refined-capital.com/shop"}
+                            ]
                         ]
-                    ]
-                }
-            
-                send_reply(chat_id, welcome, keyboard)
-            if cmd == "/help":
-                help = (
-                    "<b>Commands:</b>\n"
-                    "🟩 <b>Miners by Category:</b>\n"
-                    "/allminerprices – All Miners\n"
-                    "/btcminerprices – BTC Miners\n"
-                    "/dogeminerprices – LTC & DOGE Miners\n"
-                    "/altminerprices – ALT Miners\n"
-                    "/aleominerprices – ALEO Miners\n"
-                    "/alphminerprices – ALPH Miners\n"
-                    "/etcminerprices – ETC Miners\n"
-                    "/kdaminerprices – KDA Miners\n"
-                    "/kasminerprices – KAS Miners\n\n"
-                    " \n\n"
-                    "🟦 <b>Other Hardware:</b>\n"
-                    "/usastockprices – USA Stock Only\n"
-                    "/pduprices – PDUs\n"
-                    "/xfmrprices – Transformers\n"
-                    "/partsprices – Parts & Accessories\n\n"
-                )
-                send_reply(chat_id, help)
-            if cmd in commands:
-                print(f"[DEBUG] Received {cmd} from chat {chat_id}", flush=True)
-                reply = fetch_category_prices(commands[cmd])
-                send_reply(chat_id, reply)
-                
-            # Move the update ID forward regardless of command
-            last_update_id = update_id
+                    }
 
-    # Handle inline button taps
-    for update in results:
-        if "callback_query" in update:
-            callback = update["callback_query"]
-            chat_id = callback["message"]["chat"]["id"]
-            data = callback["data"]
-    
-            if data in commands:
-                reply = fetch_category_prices(commands[data])
-                send_reply(chat_id, reply)
-            
+                    send_reply(chat_id, welcome, keyboard)
+
+                elif cmd in commands:
+                    reply = fetch_category_prices(commands[cmd])
+                    send_reply(chat_id, reply)
+
+            # Handle inline button presses
+            if "callback_query" in update:
+                callback = update["callback_query"]
+                data = callback.get("data", "")
+                chat_id = callback["message"]["chat"]["id"]
+
+                if data in commands:
+                    reply = fetch_category_prices(commands[data])
+                    send_reply(chat_id, reply)
+
     except Exception as e:
         print(f"[ERROR] Exception checking messages: {e}", flush=True)
 
