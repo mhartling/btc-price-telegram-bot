@@ -27,44 +27,53 @@ def send_reply(chat_id, message):
     requests.post(url, data=data)
 
 def fetch_eligible_products():
-    url = f"{WC_API_URL}/products"
     auth = HTTPBasicAuth(WC_API_KEY, WC_API_SECRET)
-    params = {
-        "category": WC_CATEGORY_ID,
-        "status": "publish",
-        "per_page": 100
-    }
+    page = 1
+    all_filtered = []
 
     try:
-        response = requests.get(url, params=params, auth=auth)
-        if response.status_code != 200:
-            print(f"[ERROR] WooCommerce API: {response.status_code} - {response.text}", flush=True)
-            return "Failed to retrieve products."
+        while True:
+            url = f"{WC_API_URL}/products"
+            params = {
+                "category": WC_CATEGORY_ID,
+                "status": "publish",
+                "per_page": 100,
+                "page": page
+            }
 
-        products = response.json()
-        filtered = []
+            response = requests.get(url, params=params, auth=auth)
+            if response.status_code != 200:
+                print(f"[ERROR] WooCommerce API: {response.status_code} - {response.text}", flush=True)
+                return "Failed to retrieve products."
 
-        for p in products:
-            price = float(p.get("price") or 0)
-            stock_status = p.get("stock_status")
-            stock_quantity = p.get("stock_quantity", "N/A")
-            link = p.get("permalink")
-            name = p.get("name")
+            products = response.json()
+            print(f"[DEBUG] Fetched page {page} with {len(products)} products", flush=True)
 
-            if price > 0 and stock_status == "instock":
-                line = f"<a href=\"{link}\">{name}</a> - ${price} (Stock: {stock_quantity})"
-                filtered.append(line)
+            for p in products:
+                price = float(p.get("price") or 0)
+                stock_status = p.get("stock_status")
+                stock_quantity = p.get("stock_quantity", "N/A")
+                link = p.get("permalink")
+                name = p.get("name")
 
-        if not filtered:
+                if price > 0 and stock_status == "instock":
+                    line = f"<a href=\"{link}\">{name}</a> - ${price} (Stock: {stock_quantity})"
+                    all_filtered.append(line)
+
+            if len(products) < 100:
+                break  # Reached the last page
+
+            page += 1  # Go to next page
+
+        if not all_filtered:
             return "No miners currently in stock with valid prices."
 
-        message = "Current Miner Prices:\n\n" + "\n".join(filtered)
+        message = "Current Miner Prices:\n\n" + "\n".join(all_filtered)
         return message
 
     except Exception as e:
         print(f"[ERROR] Exception fetching products: {e}", flush=True)
         return "Error fetching product data."
-
 def check_user_messages():
     global last_update_id
     url = f"{BOT_API}/getUpdates"
