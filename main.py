@@ -107,6 +107,53 @@ def fetch_square_invoices_by_email(email):
         print(f"[ERROR] Square Email Lookup: {e}", flush=True)
         return "An error occurred while retrieving your invoices."
 
+# --- PRICING DATA ---
+def fetch_category_prices(category_id):
+    auth = HTTPBasicAuth(WC_API_KEY, WC_API_SECRET)
+    page = 1
+    all_filtered = []
+
+    try:
+        while True:
+            url = f"{WC_API_URL}/products"
+            params = {
+                "category": category_id,
+                "status": "publish",
+                "per_page": 100,
+                "page": page
+            }
+
+            response = requests.get(url, params=params, auth=auth)
+            if response.status_code != 200:
+                print(f"[ERROR] WooCommerce API: {response.status_code} - {response.text}", flush=True)
+                return "Failed to retrieve products."
+
+            products = response.json()
+            for p in products:
+                price = float(p.get("price") or 0)
+                stock_status = p.get("stock_status")
+                stock_quantity = p.get("stock_quantity", "N/A")
+                link = p.get("permalink")
+                name = p.get("name")
+
+                if price > 0 and stock_status == "instock":
+                    line = f"<a href=\"{link}\">{name}</a> - ${price} (Stock: {stock_quantity})"
+                    all_filtered.append(line)
+
+            if len(products) < 100:
+                break
+            page += 1
+
+        if not all_filtered:
+            return "No products currently in stock with valid prices."
+
+        message = "Product Prices:\n\n" + "\n".join(all_filtered)
+        return message
+
+    except Exception as e:
+        print(f"[ERROR] Exception fetching category {category_id}: {e}", flush=True)
+        return "Error fetching product data."
+
 # --- UI HANDLERS ---
 def send_reply(chat_id, message, keyboard=None):
     url = f"{BOT_API}/sendMessage"
@@ -121,11 +168,42 @@ def send_reply(chat_id, message, keyboard=None):
     requests.post(url, data=data)
 
 def send_main_menu(chat_id):
-    keyboard = {"keyboard": [["\U0001F50D See Prices"], ["👥 Hosting Clients"]], "resize_keyboard": True}
-    send_reply(chat_id, "Welcome to Refined Capital.\n\nChoose an option:", keyboard)
+    keyboard = {
+        "keyboard": [
+            ["🔍 See Prices"],
+            ["👥 Hosting Clients"]
+        ],
+        "resize_keyboard": True,
+        "one_time_keyboard": False
+    }
+    send_reply(chat_id, "Welcome to Refined Capital.\nChoose an option:", keyboard)
+
+def send_prices_menu(chat_id):
+    keyboard = {
+        "keyboard": [
+            ["🪙 All Miners", "₿ BTC Miners"],
+            ["🚀 Doge/LTC Miners", "🧪 ALT Miners"],
+            ["🔐 ALEO", "⚡ ALPH"],
+            ["⛏️ KAS", "💾 ETC"],
+            ["🇺🇸 USA Stock", "🔌 PDUs"],
+            ["🔧 Transformers", "🧩 Parts"],
+            ["🛒 Shop Now"]
+        ],
+        "resize_keyboard": True,
+        "one_time_keyboard": False
+    }
+    send_reply(chat_id, "👇 Select a category to view prices:", keyboard)
 
 def send_hosting_menu(chat_id):
-    keyboard = {"keyboard": [["🧾 My Hosting Invoices"], ["🖥️ My Miners"], ["📦 My Orders"]], "resize_keyboard": True}
+    keyboard = {
+        "keyboard": [
+            ["🧾 My Hosting Invoices"],
+            ["🖥️ My Miners"],
+            ["📦 My Orders"]
+        ],
+        "resize_keyboard": True,
+        "one_time_keyboard": False
+    }
     send_reply(chat_id, "Choose an option:", keyboard)
 
 # --- MAIN LOOP ---
@@ -140,12 +218,13 @@ def check_user_messages():
         message = update.get("message", {})
         text = message.get("text", "").strip()
         chat_id = message.get("chat", {}).get("id")
+        cmd = text.lower()
 
-        if text.lower() == "/start":
+        if cmd == "/start":
             send_main_menu(chat_id)
 
         elif text == "🔍 See Prices":
-            send_reply(chat_id, "Coming soon...")
+            send_prices_menu(chat_id)
 
         elif text == "👥 Hosting Clients":
             user_profiles[chat_id] = {"step": "name"}
@@ -179,6 +258,42 @@ def check_user_messages():
 
         elif text == "📦 My Orders":
             send_reply(chat_id, "(WooCommerce API integration coming soon)")
+
+        elif cmd in {
+            "🪙 all miners": "/allminerprices",
+            "₿ btc miners": "/btcminerprices",
+            "🚀 doge/ltc miners": "/dogeminerprices",
+            "🧪 alt miners": "/altminerprices",
+            "🔐 aleo": "/aleominerprices",
+            "⚡ alph": "/alphminerprices",
+            "💾 etc": "/etcminerprices",
+            "⛏️ kas": "/kasminerprices",
+            "🇺🇸 usa stock": "/usastockprices",
+            "🔌 pdus": "/pduprices",
+            "🔧 transformers": "/xfmrprices",
+            "🧩 parts": "/partsprices"
+        }:
+            mapped = {
+                "🪙 all miners": "/allminerprices",
+                "₿ btc miners": "/btcminerprices",
+                "🚀 doge/ltc miners": "/dogeminerprices",
+                "🧪 alt miners": "/altminerprices",
+                "🔐 aleo": "/aleominerprices",
+                "⚡ alph": "/alphminerprices",
+                "💾 etc": "/etcminerprices",
+                "⛏️ kas": "/kasminerprices",
+                "🇺🇸 usa stock": "/usastockprices",
+                "🔌 pdus": "/pduprices",
+                "🔧 transformers": "/xfmrprices",
+                "🧩 parts": "/partsprices"
+            }
+            category_id = commands.get(mapped[cmd])
+            if category_id:
+                result = fetch_category_prices(category_id)
+                send_reply(chat_id, result)
+
+        elif cmd == "🛒 shop now":
+            send_reply(chat_id, "🛒 Visit our full store: https://refined-capital.com/shop")
 
 def flush_old():
     global last_update_id
