@@ -16,7 +16,7 @@ WC_CATEGORY_ID = os.environ.get("WC_CATEGORY_ID")
 # Used to avoid processing the same message multiple times
 last_update_id = None
     
-def send_reply(chat_id, message):
+def send_reply(chat_id, message, keyboard=None):
     url = f"{BOT_API}/sendMessage"
     data = {
         "chat_id": chat_id,
@@ -24,6 +24,10 @@ def send_reply(chat_id, message):
         "parse_mode": "HTML",
         "disable_web_page_preview": True
     }
+
+    if keyboard:
+        data["reply_markup"] = json.dumps(keyboard)
+
     requests.post(url, data=data)
 
 def fetch_category_prices(category_id):
@@ -109,28 +113,44 @@ def check_user_messages():
             if cmd == "/start":
                 welcome = (
                     "<b>Welcome to the Refined Capital Mining Bot 🧠⛏️</b>\n\n"
-                    "Use this bot to check real-time availability and pricing for mining hardware and power equipment.\n\n"
-                    "<b>Commands:</b>\n"
-                    "🟩 <b>Miners by Category:</b>\n"
-                    "/allminerprices – All Miners\n"
-                    "/btcminerprices – BTC Miners\n"
-                    "/dogeminerprices – LTC & DOGE Miners\n"
-                    "/altminerprices – ALT Miners\n"
-                    "/aleominerprices – ALEO Miners\n"
-                    "/alphminerprices – ALPH Miners\n"
-                    "/etcminerprices – ETC Miners\n"
-                    "/kdaminerprices – KDA Miners\n"
-                    "/kasminerprices – KAS Miners\n\n"
-                    " \n\n"
-                    "🟦 <b>Other Hardware:</b>\n"
-                    "/usastockprices – USA Stock Only\n"
-                    "/pduprices – PDUs\n"
-                    "/xfmrprices – Transformers\n"
-                    "/partsprices – Parts & Accessories\n\n"
-                    "Type any of the above commands to get the latest pricing and stock for that category.\n\n"
-                    "<i>Powered by Refined Capital</i>\n"
+                    "Use this bot to check real-time pricing and availability for crypto mining hardware and infrastructure.\n\n"
+                    "Choose a category below to get started:\n\n"
+                    "<i>Powered by Refined Capital</i>"
                 )
-                send_reply(chat_id, welcome)
+            
+                keyboard = {
+                    "inline_keyboard": [
+                        [
+                            {"text": "🪙 All Miners", "callback_data": "/allminerprices"},
+                            {"text": "₿ BTC Miners", "callback_data": "/btcminerprices"}
+                        ],
+                        [
+                            {"text": "🚀 Doge/LTC Miners", "callback_data": "/dogeminerprices"},
+                            {"text": "🧪 ALT Miners", "callback_data": "/altminerprices"}
+                        ],
+                        [
+                            {"text": "🔐 ALEO", "callback_data": "/aleominerprices"},
+                            {"text": "⚡ ALPH", "callback_data": "/alphminerprices"}
+                        ],
+                        [
+                            {"text": "⛏️ KAS", "callback_data": "/kasminerprices"},
+                            {"text": "💾 ETC", "callback_data": "/etcminerprices"}
+                        ],
+                        [
+                            {"text": "🇺🇸 USA Stock", "callback_data": "/usastockprices"},
+                            {"text": "🔌 PDUs", "callback_data": "/pduprices"}
+                        ],
+                        [
+                            {"text": "🔧 Transformers", "callback_data": "/xfmrprices"},
+                            {"text": "🧩 Parts", "callback_data": "/partsprices"}
+                        ],
+                        [
+                            {"text": "🛒 Shop Now", "url": "https://refined-capital.com/shop"}
+                        ]
+                    ]
+                }
+            
+                send_reply(chat_id, welcome, keyboard)
             if cmd == "/help":
                 help = (
                     "<b>Commands:</b>\n"
@@ -160,6 +180,17 @@ def check_user_messages():
             # Move the update ID forward regardless of command
             last_update_id = update_id
 
+    # Handle inline button taps
+    for update in results:
+        if "callback_query" in update:
+            callback = update["callback_query"]
+            chat_id = callback["message"]["chat"]["id"]
+            data = callback["data"]
+    
+            if data in commands:
+                reply = fetch_category_prices(commands[data])
+                send_reply(chat_id, reply)
+            
     except Exception as e:
         print(f"[ERROR] Exception checking messages: {e}", flush=True)
 
