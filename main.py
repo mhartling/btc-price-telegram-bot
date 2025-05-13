@@ -1,5 +1,6 @@
 import os
 import time
+import json
 import requests
 from requests.auth import HTTPBasicAuth
 
@@ -11,11 +12,26 @@ BOT_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 WC_API_URL = os.environ.get("WC_API_URL")
 WC_API_KEY = os.environ.get("WC_API_KEY")
 WC_API_SECRET = os.environ.get("WC_API_SECRET")
-WC_CATEGORY_ID = os.environ.get("WC_CATEGORY_ID")
 
-# Used to avoid processing the same message multiple times
+# Commands mapped to category IDs
+commands = {
+    "/allminerprices": 20,
+    "/btcminerprices": 16,
+    "/dogeminerprices": 21,
+    "/altminerprices": 22,
+    "/aleominerprices": 337,
+    "/alphminerprices": 128,
+    "/etcminerprices": 189,
+    "/kdaminerprices": 192,
+    "/kasminerprices": 102,
+    "/usastockprices": 199,
+    "/pduprices": 105,
+    "/xfmrprices": 106,
+    "/partsprices": 23
+}
+
 last_update_id = None
-    
+
 def send_reply(chat_id, message, keyboard=None):
     url = f"{BOT_API}/sendMessage"
     data = {
@@ -28,7 +44,9 @@ def send_reply(chat_id, message, keyboard=None):
     if keyboard:
         data["reply_markup"] = json.dumps(keyboard)
 
-    requests.post(url, data=data)
+    response = requests.post(url, data=data)
+    if not response.ok:
+        print(f"[ERROR] Failed to send message: {response.text}", flush=True)
 
 def fetch_category_prices(category_id):
     auth = HTTPBasicAuth(WC_API_KEY, WC_API_SECRET)
@@ -75,7 +93,7 @@ def fetch_category_prices(category_id):
     except Exception as e:
         print(f"[ERROR] Exception fetching category {category_id}: {e}", flush=True)
         return "Error fetching product data."
-        
+
 def check_user_messages():
     global last_update_id
     url = f"{BOT_API}/getUpdates"
@@ -88,10 +106,9 @@ def check_user_messages():
         results = response.get("result", [])
 
         for update in results:
-            # Update last_update_id regardless of message or callback
             last_update_id = update.get("update_id")
 
-            # Handle regular text message commands
+            # Handle regular commands
             if "message" in update:
                 message = update["message"]
                 text = message.get("text", "")
@@ -144,7 +161,7 @@ def check_user_messages():
                     reply = fetch_category_prices(commands[cmd])
                     send_reply(chat_id, reply)
 
-            # Handle inline button presses
+            # Handle button presses
             if "callback_query" in update:
                 callback = update["callback_query"]
                 data = callback.get("data", "")
@@ -166,16 +183,13 @@ def flush_old_messages():
         last_update_id = results[-1]["update_id"]
         print(f"[INFO] Flushed old messages up to update_id: {last_update_id}", flush=True)
 
+# Initial flush to skip old messages
 flush_old_messages()
 
-while True:
-    check_user_messages()
-    time.sleep(2)
-
-# Start the bot loop
+# Main bot loop
 while True:
     try:
         check_user_messages()
     except Exception as e:
         print(f"[ERROR] Bot loop crashed: {e}", flush=True)
-    time.sleep(2)  # Poll more frequently for better responsiveness
+    time.sleep(2)
