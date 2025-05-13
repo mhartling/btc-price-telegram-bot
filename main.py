@@ -85,17 +85,33 @@ def get_all_miners():
         "per_page": 20
     }
     auth = HTTPBasicAuth(WC_API_KEY, WC_API_SECRET)
-    response = requests.get(url, params=params, auth=auth)
-    if response.status_code == 200:
-        products = response.json()
-        message_lines = ["Current Miner Prices:"]
-        for p in products:
-            name = p['name']
-            price = p['price']
-            message_lines.append(f"{name} - ${price}")
-        return "\n".join(message_lines)
-    else:
-        return "Unable to fetch miner prices. Please try again later."
+
+    try:
+        print(f"[DEBUG] Sending request to WooCommerce: {url}")
+        print(f"[DEBUG] Params: {params}")
+        response = requests.get(url, params=params, auth=auth)
+
+        print(f"[DEBUG] Status Code: {response.status_code}")
+        print(f"[DEBUG] Response Text: {response.text[:1000]}")  # Limit log size for safety
+
+        if response.status_code == 200:
+            products = response.json()
+            if not products:
+                print("[DEBUG] No products found in the response.")
+                return "No miners found in this category."
+
+            message_lines = ["Current Miner Prices:"]
+            for p in products:
+                name = p.get('name', 'Unknown')
+                price = p.get('price', 'N/A')
+                message_lines.append(f"{name} - ${price}")
+            return "\n".join(message_lines)
+        else:
+            return f"Error fetching products: {response.status_code}"
+
+    except Exception as e:
+        print(f"[ERROR] Exception occurred during WooCommerce API request: {e}")
+        return "Failed to connect to the product database."
         
 # Start the loop
 while True:
