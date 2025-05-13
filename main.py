@@ -15,7 +15,7 @@ WC_API_SECRET = os.environ.get("WC_API_SECRET")
 
 # Commands mapped to category IDs
 commands = {
-    "/allminerprices": 20,
+    "/allminerprices": 112,
     "/btcminerprices": 16,
     "/dogeminerprices": 21,
     "/altminerprices": 22,
