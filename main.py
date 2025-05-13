@@ -13,7 +13,7 @@ WC_API_KEY = os.environ.get("WC_API_KEY")
 WC_API_SECRET = os.environ.get("WC_API_SECRET")
 WC_CATEGORY_ID = os.environ.get("WC_CATEGORY_ID")
 
-# Used to avoid processing the same Telegram message multiple times
+# Used to avoid processing the same message multiple times
 last_update_id = None
 
 def send_reply(chat_id, message):
@@ -75,14 +75,18 @@ def check_user_messages():
     try:
         response = requests.get(url, params=params).json()
         for update in response.get("result", []):
-            last_update_id = update["update_id"]
+            update_id = update["update_id"]
             message = update.get("message", {})
             text = message.get("text", "")
             chat_id = message.get("chat", {}).get("id")
 
             if text.strip().lower() == "/prices":
+                print("[DEBUG] Received /prices command", flush=True)
                 reply = fetch_eligible_products()
                 send_reply(chat_id, reply)
+
+            # After processing, move to the next update
+            last_update_id = update_id
 
     except Exception as e:
         print(f"[ERROR] Exception checking messages: {e}", flush=True)
@@ -93,4 +97,4 @@ while True:
         check_user_messages()
     except Exception as e:
         print(f"[ERROR] Bot loop crashed: {e}", flush=True)
-    time.sleep(10)
+    time.sleep(2)  # Poll more frequently for better responsiveness
