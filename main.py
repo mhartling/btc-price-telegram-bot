@@ -20,7 +20,9 @@ def send_reply(chat_id, message):
     url = f"{BOT_API}/sendMessage"
     data = {
         "chat_id": chat_id,
-        "text": message
+        "text": message,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True
     }
     requests.post(url, data=data)
 
@@ -30,7 +32,7 @@ def fetch_eligible_products():
     params = {
         "category": WC_CATEGORY_ID,
         "status": "publish",
-        "per_page": 50
+        "per_page": 100
     }
 
     try:
@@ -45,13 +47,19 @@ def fetch_eligible_products():
         for p in products:
             price = float(p.get("price") or 0)
             stock_status = p.get("stock_status")
+            stock_quantity = p.get("stock_quantity", "N/A")
+            link = p.get("permalink")
+            name = p.get("name")
+
             if price > 0 and stock_status == "instock":
-                filtered.append(f"{p['name']} - ${price}")
+                line = f"<a href=\"{link}\">{name}</a> - ${price} (Stock: {stock_quantity})"
+                filtered.append(line)
 
         if not filtered:
             return "No miners currently in stock with valid prices."
 
-        return "Current Miner Prices:\n" + "\n".join(filtered)
+        message = "Current Miner Prices:\n\n" + "\n".join(filtered)
+        return message
 
     except Exception as e:
         print(f"[ERROR] Exception fetching products: {e}", flush=True)
