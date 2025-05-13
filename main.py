@@ -2,6 +2,12 @@ import requests
 import time
 import os
 
+from requests.auth import HTTPBasicAuth
+
+WC_API_URL = os.environ.get("WC_API_URL")
+WC_API_KEY = os.environ.get("WC_API_KEY")
+WC_API_SECRET = os.environ.get("WC_API_SECRET")
+
 TOKEN = os.environ.get("BOT_TOKEN")
 CHANNEL_ID = os.environ.get("CHANNEL_ID")
 BOT_API = f"https://api.telegram.org/bot{TOKEN}"
@@ -59,7 +65,11 @@ def check_user_messages():
             current_price = get_btc_price()
             reply = f"Current BTC price: ${current_price:,.2f}"
             send_reply(chat_id, reply)
-
+            
+        if text.lower().startswith("/current_product_prices"):
+            product_message = get_all_miners()
+            send_reply(chat_id, product_message)
+            
 def send_reply(chat_id, message):
     url = f"{BOT_API}/sendMessage"
     data = {
@@ -68,6 +78,25 @@ def send_reply(chat_id, message):
     }
     requests.post(url, data=data)
 
+def get_all_miners():
+    url = f"{WC_API_URL}/products"
+    params = {
+        "category": WC_CATEGORY_ID,
+        "per_page": 20
+    }
+    auth = HTTPBasicAuth(WC_API_KEY, WC_API_SECRET)
+    response = requests.get(url, params=params, auth=auth)
+    if response.status_code == 200:
+        products = response.json()
+        message_lines = ["Current Miner Prices:"]
+        for p in products:
+            name = p['name']
+            price = p['price']
+            message_lines.append(f"{name} - ${price}")
+        return "\n".join(message_lines)
+    else:
+        return "Unable to fetch miner prices. Please try again later."
+        
 # Start the loop
 while True:
     try:
