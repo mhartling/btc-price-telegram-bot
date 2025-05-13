@@ -35,24 +35,24 @@ last_update_id = None
 def send_menu_keyboard(chat_id):
     keyboard = {
         "keyboard": [
-            ["🪙 All Miners", "₿ BTC Miners"],
-            ["🚀 Doge/LTC Miners", "🧪 ALT Miners"],
-            ["🔐 ALEO", "⚡ ALPH"],
-            ["⛏️ KAS", "💾 ETC"],
-            ["🇺🇸 USA Stock", "🔌 PDUs"],
-            ["🔧 Transformers", "🧩 Parts"],
-            ["🛒 Shop Now"]
+            ["\U0001FA99 All Miners", "₿ BTC Miners"],
+            ["\U0001F680 Doge/LTC Miners", "\U0001F9EA ALT Miners"],
+            ["\U0001F510 ALEO", "⚡ ALPH"],
+            ["\u26CF️ KAS", "\U0001F4BE ETC"],
+            ["\U0001F1FA\U0001F1F8 USA Stock", "\U0001F50C PDUs"],
+            ["\U0001F527 Transformers", "\U0001FA99 Parts"],
+            ["\U0001F6D2 Shop Now"]
         ],
         "resize_keyboard": True,
         "one_time_keyboard": False
     }
 
     message = (
-        "👇 Select a category from the menu below to get real-time prices:\n"
+        "\u2B07 Select a category from the menu below to get real-time prices:\n"
         "(Or use the /start command for inline buttons)"
     )
     send_reply(chat_id, message, keyboard)
-    
+
 def send_reply(chat_id, message, keyboard=None):
     url = f"{BOT_API}/sendMessage"
     data = {
@@ -61,10 +61,8 @@ def send_reply(chat_id, message, keyboard=None):
         "parse_mode": "HTML",
         "disable_web_page_preview": True
     }
-
     if keyboard:
         data["reply_markup"] = json.dumps(keyboard)
-
     response = requests.post(url, data=data)
     if not response.ok:
         print(f"[ERROR] Failed to send message: {response.text}", flush=True)
@@ -129,7 +127,6 @@ def check_user_messages():
         for update in results:
             last_update_id = update.get("update_id")
 
-            # Handle regular commands
             if "message" in update:
                 message = update["message"]
                 text = message.get("text", "")
@@ -138,10 +135,10 @@ def check_user_messages():
 
                 if cmd == "/menu":
                     send_menu_keyboard(chat_id)
-                    
-                if cmd == "/start":
+
+                elif cmd == "/start":
                     welcome = (
-                        "<b>Welcome to the Refined Capital Mining Bot 🧠⛏️</b>\n\n"
+                        "<b>Welcome to the Refined Capital Mining Bot \U0001F9E0\u26CF\ufe0f</b>\n\n"
                         "Use this bot to check real-time pricing and availability for crypto mining hardware and infrastructure.\n\n"
                         "Choose a category below to get started:\n\n"
                         "<i>Powered by Refined Capital</i>"
@@ -150,66 +147,65 @@ def check_user_messages():
                     keyboard = {
                         "inline_keyboard": [
                             [
-                                {"text": "🪙 All Miners", "callback_data": "/allminerprices"},
+                                {"text": "\U0001FA99 All Miners", "callback_data": "/allminerprices"},
                                 {"text": "₿ BTC Miners", "callback_data": "/btcminerprices"}
                             ],
                             [
-                                {"text": "🚀 Doge/LTC Miners", "callback_data": "/dogeminerprices"},
-                                {"text": "🧪 ALT Miners", "callback_data": "/altminerprices"}
+                                {"text": "\U0001F680 Doge/LTC Miners", "callback_data": "/dogeminerprices"},
+                                {"text": "\U0001F9EA ALT Miners", "callback_data": "/altminerprices"}
                             ],
                             [
-                                {"text": "🔐 ALEO", "callback_data": "/aleominerprices"},
+                                {"text": "\U0001F510 ALEO", "callback_data": "/aleominerprices"},
                                 {"text": "⚡ ALPH", "callback_data": "/alphminerprices"}
                             ],
                             [
                                 {"text": "⛏️ KAS", "callback_data": "/kasminerprices"},
-                                {"text": "💾 ETC", "callback_data": "/etcminerprices"}
+                                {"text": "\U0001F4BE ETC", "callback_data": "/etcminerprices"}
                             ],
                             [
-                                {"text": "🇺🇸 USA Stock", "callback_data": "/usastockprices"},
-                                {"text": "🔌 PDUs", "callback_data": "/pduprices"}
+                                {"text": "\U0001F1FA\U0001F1F8 USA Stock", "callback_data": "/usastockprices"},
+                                {"text": "\U0001F50C PDUs", "callback_data": "/pduprices"}
                             ],
                             [
-                                {"text": "🔧 Transformers", "callback_data": "/xfmrprices"},
-                                {"text": "🧩 Parts", "callback_data": "/partsprices"}
+                                {"text": "\U0001F527 Transformers", "callback_data": "/xfmrprices"},
+                                {"text": "\U0001FA99 Parts", "callback_data": "/partsprices"}
                             ],
                             [
-                                {"text": "🛒 Shop Now", "url": "https://refined-capital.com/shop"}
+                                {"text": "\U0001F6D2 Shop Now", "url": "https://refined-capital.com/shop"}
                             ]
                         ]
                     }
-
                     send_reply(chat_id, welcome, keyboard)
 
                 elif cmd in commands:
                     reply = fetch_category_prices(commands[cmd])
                     send_reply(chat_id, reply)
 
-            menu_map = {
-                "🪙 all miners": "/allminerprices",
-                "₿ btc miners": "/btcminerprices",
-                "🚀 doge/ltc miners": "/dogeminerprices",
-                "🧪 alt miners": "/altminerprices",
-                "🔐 aleo": "/aleominerprices",
-                "⚡ alph": "/alphminerprices",
-                "💾 etc": "/etcminerprices",
-                "⛏️ kas": "/kasminerprices",
-                "🇺🇸 usa stock": "/usastockprices",
-                "🔌 pdus": "/pduprices",
-                "🔧 transformers": "/xfmrprices",
-                "🧩 parts": "/partsprices"
-            }
+                else:
+                    menu_map = {
+                        "\U0001FA99 all miners": "/allminerprices",
+                        "₿ btc miners": "/btcminerprices",
+                        "\U0001F680 doge/ltc miners": "/dogeminerprices",
+                        "\U0001F9EA alt miners": "/altminerprices",
+                        "\U0001F510 aleo": "/aleominerprices",
+                        "⚡ alph": "/alphminerprices",
+                        "\U0001F4BE etc": "/etcminerprices",
+                        "⛏️ kas": "/kasminerprices",
+                        "\U0001F1FA\U0001F1F8 usa stock": "/usastockprices",
+                        "\U0001F50C pdus": "/pduprices",
+                        "\U0001F527 transformers": "/xfmrprices",
+                        "\U0001FA99 parts": "/partsprices"
+                    }
 
-            if cmd in menu_map:
-                mapped_cmd = menu_map[cmd]
-                if mapped_cmd in commands:
-                    reply = fetch_category_prices(commands[mapped_cmd])
-                    send_reply(chat_id, reply)
+                    if cmd in menu_map:
+                        mapped_cmd = menu_map[cmd]
+                        if mapped_cmd in commands:
+                            reply = fetch_category_prices(commands[mapped_cmd])
+                            send_reply(chat_id, reply)
 
-elif cmd == "🛒 shop now":
-    send_reply(chat_id, "🛒 Visit our full store: https://refined-capital.com/shop")
+                    elif cmd == "\U0001F6D2 shop now":
+                        send_reply(chat_id, "\U0001F6D2 Visit our full store: https://refined-capital.com/shop")
 
-            # Handle button presses
             if "callback_query" in update:
                 callback = update["callback_query"]
                 data = callback.get("data", "")
@@ -231,10 +227,8 @@ def flush_old_messages():
         last_update_id = results[-1]["update_id"]
         print(f"[INFO] Flushed old messages up to update_id: {last_update_id}", flush=True)
 
-# Initial flush to skip old messages
 flush_old_messages()
 
-# Main bot loop
 while True:
     try:
         check_user_messages()
