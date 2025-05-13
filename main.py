@@ -117,7 +117,7 @@ def check_user_messages():
 
                 if cmd == "/start":
                     welcome = (
-                        "<b>Welcome to the Refined Capital Mining Bot 🧠⛏️</b>\n\n"
+                        "<b>Welcome to the Refined Capital Miner Prices Bot 🧠⛏️</b>\n\n"
                         "Use this bot to check real-time pricing and availability for crypto mining hardware and infrastructure.\n\n"
                         "Choose a category below to get started:\n\n"
                         "<i>Powered by Refined Capital</i>"
