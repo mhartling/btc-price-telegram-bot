@@ -133,7 +133,7 @@ def check_user_messages():
                 send_reply(chat_id, welcome)
             if cmd == "/help":
                 help = (
-                    ""<b>Commands:</b>\n"
+                    "<b>Commands:</b>\n"
                     "🟩 <b>Miners by Category:</b>\n"
                     "/allminerprices – All Miners\n"
                     "/btcminerprices – BTC Miners\n"
