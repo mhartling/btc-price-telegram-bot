@@ -26,7 +26,7 @@ def send_reply(chat_id, message):
     }
     requests.post(url, data=data)
 
-def fetch_eligible_products():
+def fetch_category_prices(category_id):
     auth = HTTPBasicAuth(WC_API_KEY, WC_API_SECRET)
     page = 1
     all_filtered = []
@@ -35,7 +35,7 @@ def fetch_eligible_products():
         while True:
             url = f"{WC_API_URL}/products"
             params = {
-                "category": WC_CATEGORY_ID,
+                "category": category_id,
                 "status": "publish",
                 "per_page": 100,
                 "page": page
@@ -47,8 +47,6 @@ def fetch_eligible_products():
                 return "Failed to retrieve products."
 
             products = response.json()
-            print(f"[DEBUG] Fetched page {page} with {len(products)} products", flush=True)
-
             for p in products:
                 price = float(p.get("price") or 0)
                 stock_status = p.get("stock_status")
@@ -61,19 +59,19 @@ def fetch_eligible_products():
                     all_filtered.append(line)
 
             if len(products) < 100:
-                break  # Reached the last page
-
-            page += 1  # Go to next page
+                break
+            page += 1
 
         if not all_filtered:
-            return "No miners currently in stock with valid prices."
+            return "No products currently in stock with valid prices."
 
-        message = "Current Miner Prices:\n\n" + "\n".join(all_filtered)
+        message = "Product Prices:\n\n" + "\n".join(all_filtered)
         return message
 
     except Exception as e:
-        print(f"[ERROR] Exception fetching products: {e}", flush=True)
+        print(f"[ERROR] Exception fetching category {category_id}: {e}", flush=True)
         return "Error fetching product data."
+        
 def check_user_messages():
     global last_update_id
     url = f"{BOT_API}/getUpdates"
@@ -91,12 +89,28 @@ def check_user_messages():
             text = message.get("text", "")
             chat_id = message.get("chat", {}).get("id")
 
-            # Only reply if the text is /prices
-            if text.strip().lower() == "/prices":
-                print(f"[DEBUG] Received /prices from chat {chat_id}", flush=True)
-                reply = fetch_eligible_products()
+            commands = {
+                "/allminerprices": 20,        # You can use this as default All Miners category
+                "/btcminerprices": 16,
+                "/dogeminerprices": 21,
+                "/altminerprices": 22,
+                "/aleominerprices": 337,
+                "/alphminerprices": 128,
+                "/etcminerprices": 189,
+                "/kdaminerprices": 192,
+                "/kasminerprices": 102,
+                "/usastockprices": 199,
+                "/pduprices": 105,
+                "/xfmrprices": 106,
+                "/partsprices": 23
+            }
+            
+            cmd = text.strip().lower()
+            if cmd in commands:
+                print(f"[DEBUG] Received {cmd} from chat {chat_id}", flush=True)
+                reply = fetch_category_prices(commands[cmd])
                 send_reply(chat_id, reply)
-
+                
             # Move the update ID forward regardless of command
             last_update_id = update_id
 
