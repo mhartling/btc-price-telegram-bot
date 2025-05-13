@@ -139,6 +139,89 @@ def send_hosting_menu(chat_id):
     }
     send_reply(chat_id, "Great. Now please choose one of the options below:", keyboard)
 
+from datetime import datetime, timedelta
+
+def fetch_square_invoices(full_name):
+    try:
+        # Step 1: Search for customer by name
+        headers = {
+            "Authorization": f"Bearer {os.environ.get('SQUARE_API_KEY')}",
+            "Content-Type": "application/json"
+        }
+
+        search_url = "https://connect.squareup.com/v2/customers/search"
+        name_parts = full_name.strip().split()
+        if len(name_parts) < 2:
+            return "Please provide both first and last name."
+
+        query = {
+            "query": {
+                "filter": {
+                    "text_filter": {
+                        "exact": full_name
+                    }
+                }
+            }
+        }
+
+        response = requests.post(search_url, headers=headers, json=query)
+        if response.status_code != 200:
+            return "Failed to search for customer in Square."
+
+        customers = response.json().get("customers", [])
+        if not customers:
+            return f"No customer found for name: {full_name}"
+
+        customer_id = customers[0]["id"]
+
+        # Step 2: Fetch all invoices for this customer
+        location_id = os.environ.get("SQUARE_LOCATION_ID")
+        invoices_url = f"https://connect.squareup.com/v2/invoices?location_id={location_id}"
+        response = requests.get(invoices_url, headers=headers)
+        if response.status_code != 200:
+            return "Failed to retrieve invoices."
+
+        invoices = response.json().get("invoices", [])
+        now = datetime.utcnow()
+        six_months_ago = now - timedelta(days=180)
+
+        unpaid = None
+        paid_list = []
+
+        for invoice in invoices:
+            if invoice.get("customer_id") != customer_id:
+                continue
+
+            status = invoice.get("status")
+            updated_at = datetime.strptime(invoice.get("updated_at")[:19], "%Y-%m-%dT%H:%M:%S")
+
+            if status == "UNPAID" and not unpaid:
+                unpaid = invoice
+            elif status == "PAID" and updated_at > six_months_ago:
+                paid_list.append(invoice)
+
+        result = ""
+
+        if unpaid:
+            result += f"🔴 <b>Current Unpaid Invoice</b>\nInvoice #{unpaid['invoice_number']} - Amount Due: ${unpaid['amount_money']['amount'] / 100:.2f}\n"
+            result += f"View Invoice: {unpaid['public_url']}\n\n"
+
+        if paid_list:
+            result += f"✅ <b>Paid Invoices (Last 6 Months)</b>\n"
+            for inv in paid_list:
+                amount = inv['amount_money']['amount'] / 100
+                result += f"• Invoice #{inv['invoice_number']} - ${amount:.2f}\n"
+
+        if not result:
+            return "No recent invoices found."
+
+        return result.strip()
+
+    except Exception as e:
+        print(f"[ERROR] Square API: {e}", flush=True)
+        return "An error occurred while retrieving your invoices."
+
+
 def check_user_messages():
     global last_update_id
     url = f"{BOT_API}/getUpdates"
@@ -174,8 +257,13 @@ def check_user_messages():
                     send_reply(chat_id, f"Thanks, {user_names[chat_id]}!")
                     send_hosting_menu(chat_id)
 
-                elif cmd == "🧾 my hosting invoices":
-                    send_reply(chat_id, "(Square API) Fetching invoices for: " + user_names.get(chat_id, "Unknown"))
+                elif cmd == \"🧾 my hosting invoices\":
+                    name = user_names.get(chat_id)
+                    if not name:
+                        send_reply(chat_id, \"We couldn't find your name. Please start again with /start.\")
+                    else:
+                        reply = fetch_square_invoices(name)
+                        send_reply(chat_id, reply)
 
                 elif cmd == "🖥️ my miners":
                     send_reply(chat_id, "(MaintainX API) Looking up miners for: " + user_names.get(chat_id, "Unknown"))
