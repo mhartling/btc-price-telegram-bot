@@ -4,8 +4,10 @@ import os
 
 TOKEN = os.environ.get("BOT_TOKEN")
 CHANNEL_ID = os.environ.get("CHANNEL_ID")
+BOT_API = f"https://api.telegram.org/bot{TOKEN}"
 
 last_alert_price = None
+last_update_id = None  # For reading messages without duplicates
 
 def get_btc_price():
     url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
@@ -13,21 +15,16 @@ def get_btc_price():
     return response['bitcoin']['usd']
 
 def send_telegram_message(message):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    url = f"{BOT_API}/sendMessage"
     data = {
         "chat_id": CHANNEL_ID,
         "text": message
     }
-    response = requests.post(url, data=data)
-    print("Telegram response:", response.text)  # <-- Helpful log
-
-# Send test message once when script starts
-send_telegram_message("✅ BTC Price Bot is running successfully!")
+    requests.post(url, data=data)
 
 def track_price():
     global last_alert_price
     current_price = get_btc_price()
-    print(f"Current BTC Price: ${current_price}")  # Debug log
     rounded_price = round(current_price / 1000) * 1000
 
     if last_alert_price is None:
@@ -40,9 +37,42 @@ def track_price():
         send_telegram_message(message)
         last_alert_price = rounded_price
 
+def check_user_messages():
+    global last_update_id
+    url = f"{BOT_API}/getUpdates"
+    params = {
+        "offset": last_update_id + 1 if last_update_id else None,
+        "timeout": 5
+    }
+    response = requests.get(url, params=params).json()
+
+    if not response.get("ok"):
+        return
+
+    for update in response["result"]:
+        last_update_id = update["update_id"]
+        message = update.get("message", {})
+        text = message.get("text", "")
+        chat_id = message.get("chat", {}).get("id")
+
+        if text.lower().startswith("/price"):
+            current_price = get_btc_price()
+            reply = f"Current BTC price: ${current_price:,.2f}"
+            send_reply(chat_id, reply)
+
+def send_reply(chat_id, message):
+    url = f"{BOT_API}/sendMessage"
+    data = {
+        "chat_id": chat_id,
+        "text": message
+    }
+    requests.post(url, data=data)
+
+# Start the loop
 while True:
     try:
         track_price()
+        check_user_messages()
     except Exception as e:
         print("Error:", e)
-    time.sleep(60)
+    time.sleep(10)  # Poll every 10 seconds
