@@ -68,7 +68,10 @@ def fetch_eligible_products():
 def check_user_messages():
     global last_update_id
     url = f"{BOT_API}/getUpdates"
-    params = {"offset": last_update_id + 1 if last_update_id else None}
+    params = {}
+    if last_update_id is not None:
+        params["offset"] = last_update_id + 1
+
     try:
         response = requests.get(url, params=params).json()
         for update in response.get("result", []):
