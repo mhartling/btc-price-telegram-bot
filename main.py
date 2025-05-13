@@ -32,7 +32,7 @@ def fetch_eligible_products():
     params = {
         "category": WC_CATEGORY_ID,
         "status": "publish",
-        "per_page": 200
+        "per_page": 100
     }
 
     try:
