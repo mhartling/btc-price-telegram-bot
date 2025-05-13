@@ -82,7 +82,7 @@ def get_all_miners():
     url = f"{WC_API_URL}/products"
     params = {
         "category": WC_CATEGORY_ID,
-        "per_page": 20
+        "per_page": 100
     }
     auth = HTTPBasicAuth(WC_API_KEY, WC_API_SECRET)
 
