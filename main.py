@@ -15,7 +15,7 @@ WC_API_SECRET = os.environ.get("WC_API_SECRET")
 
 # Commands mapped to category IDs
 commands = {
-    "/allminerprices": 112,
+    "/allminerprices": 20,
     "/btcminerprices": 16,
     "/dogeminerprices": 21,
     "/altminerprices": 22,
@@ -92,6 +92,39 @@ def fetch_category_prices(category_id):
         print(f"[ERROR] Exception fetching category {category_id}: {e}", flush=True)
         return "Error fetching product data."
 
+def send_main_menu(chat_id):
+    keyboard = {
+        "keyboard": [
+            ["\U0001F50D See Prices"],
+            ["👥 Hosting Clients"]
+        ],
+        "resize_keyboard": True,
+        "one_time_keyboard": False
+    }
+    message = (
+        "<b>Welcome to the Refined Capital Mining Bot \U0001F9E0\u26CF\ufe0f</b>\n\n"
+        "Use this bot to check real-time pricing and availability for crypto mining hardware and infrastructure.\n\n"
+        "Choose an option below to get started:\n"
+    )
+    send_reply(chat_id, message, keyboard)
+
+def send_prices_menu(chat_id):
+    keyboard = {
+        "keyboard": [
+            ["\U0001FA99 All Miners", "₿ BTC Miners"],
+            ["\U0001F680 Doge/LTC Miners", "\U0001F9EA ALT Miners"],
+            ["\U0001F510 ALEO", "⚡ ALPH"],
+            ["\u26CF️ KAS", "\U0001F4BE ETC"],
+            ["\U0001F1FA\U0001F1F8 USA Stock", "\U0001F50C PDUs"],
+            ["\U0001F527 Transformers", "\U0001FA99 Parts"],
+            ["\U0001F6D2 Shop Now"]
+        ],
+        "resize_keyboard": True,
+        "one_time_keyboard": False
+    }
+    message = "\u2B07 Choose a category below:"
+    send_reply(chat_id, message, keyboard)
+
 def check_user_messages():
     global last_update_id
     url = f"{BOT_API}/getUpdates"
@@ -113,63 +146,42 @@ def check_user_messages():
                 cmd = text.strip().lower()
 
                 if cmd == "/start":
-                    welcome = (
-                        "<b>Welcome to the Refined Capital Mining Bot \U0001F9E0\u26CF\ufe0f</b>\n\n"
-                        "Use this bot to check real-time pricing and availability for crypto mining hardware and infrastructure.\n\n"
-                        "Choose an option below to get started:\n"
-                    )
-                    keyboard = {
-                        "inline_keyboard": [
-                            [
-                                {"text": "\U0001F50D See Prices", "callback_data": "menu_prices"}
-                            ],
-                            [
-                                {"text": "👥 Hosting Clients", "callback_data": "hosting_clients"}
-                            ]
-                        ]
+                    send_main_menu(chat_id)
+
+                elif cmd == "🔍 see prices":
+                    send_prices_menu(chat_id)
+
+                elif cmd == "🛍 shop now":
+                    send_reply(chat_id, "\U0001F6D2 Visit our full store: https://refined-capital.com/shop")
+
+                else:
+                    menu_map = {
+                        "\U0001FA99 all miners": "/allminerprices",
+                        "₿ btc miners": "/btcminerprices",
+                        "\U0001F680 doge/ltc miners": "/dogeminerprices",
+                        "\U0001F9EA alt miners": "/altminerprices",
+                        "\U0001F510 aleo": "/aleominerprices",
+                        "⚡ alph": "/alphminerprices",
+                        "\U0001F4BE etc": "/etcminerprices",
+                        "⛏️ kas": "/kasminerprices",
+                        "\U0001F1FA\U0001F1F8 usa stock": "/usastockprices",
+                        "\U0001F50C pdus": "/pduprices",
+                        "\U0001F527 transformers": "/xfmrprices",
+                        "\U0001FA99 parts": "/partsprices"
                     }
-                    send_reply(chat_id, welcome, keyboard)
+
+                    if cmd in menu_map:
+                        mapped_cmd = menu_map[cmd]
+                        if mapped_cmd in commands:
+                            reply = fetch_category_prices(commands[mapped_cmd])
+                            send_reply(chat_id, reply)
 
             if "callback_query" in update:
                 callback = update["callback_query"]
                 data = callback.get("data", "")
                 chat_id = callback["message"]["chat"]["id"]
 
-                if data == "menu_prices":
-                    category_keyboard = {
-                        "inline_keyboard": [
-                            [
-                                {"text": "\U0001FA99 All Miners", "callback_data": "/allminerprices"},
-                                {"text": "₿ BTC Miners", "callback_data": "/btcminerprices"}
-                            ],
-                            [
-                                {"text": "\U0001F680 Doge/LTC Miners", "callback_data": "/dogeminerprices"},
-                                {"text": "\U0001F9EA ALT Miners", "callback_data": "/altminerprices"}
-                            ],
-                            [
-                                {"text": "\U0001F510 ALEO", "callback_data": "/aleominerprices"},
-                                {"text": "⚡ ALPH", "callback_data": "/alphminerprices"}
-                            ],
-                            [
-                                {"text": "⛏️ KAS", "callback_data": "/kasminerprices"},
-                                {"text": "\U0001F4BE ETC", "callback_data": "/etcminerprices"}
-                            ],
-                            [
-                                {"text": "\U0001F1FA\U0001F1F8 USA Stock", "callback_data": "/usastockprices"},
-                                {"text": "\U0001F50C PDUs", "callback_data": "/pduprices"}
-                            ],
-                            [
-                                {"text": "\U0001F527 Transformers", "callback_data": "/xfmrprices"},
-                                {"text": "\U0001FA99 Parts", "callback_data": "/partsprices"}
-                            ],
-                            [
-                                {"text": "\U0001F6D2 Shop Now", "url": "https://refined-capital.com/shop"}
-                            ]
-                        ]
-                    }
-                    send_reply(chat_id, "\u2B07 Choose a category below:", category_keyboard)
-
-                elif data in commands:
+                if data in commands:
                     reply = fetch_category_prices(commands[data])
                     send_reply(chat_id, reply)
 
