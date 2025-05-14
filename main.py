@@ -68,8 +68,13 @@ def fetch_square_invoices_by_email(email):
                 "filter": {
                     "location_ids": [location_id],
                     "customer_ids": [customer_id]
+                },
+                "sort": {
+                    "field": "CREATED_AT",
+                    "order": "DESC"
                 }
-            }
+            },
+            "limit": 1
         }
 
         invoice_resp = requests.post(search_invoice_url, headers=headers, json=invoice_query)
@@ -77,35 +82,24 @@ def fetch_square_invoices_by_email(email):
             return "Failed to retrieve invoices."
 
         invoices = invoice_resp.json().get("invoices", [])
-        unpaid = []
-        paid = []
+        if not invoices:
+            return "No invoices found."
 
-        for inv in invoices:
-            status = inv.get("status")
-            if status in ["UNPAID", "SCHEDULED"]:
-                unpaid.append(inv)
-            elif status == "PAID":
-                paid.append(inv)
+        invoice = invoices[0]
+        status = invoice.get("status", "")
+        amount = invoice["payment_requests"][0]["computed_amount_money"]["amount"] / 100
+        invoice_number = invoice.get("invoice_number", "N/A")
+        invoice_id = invoice.get("id", "")
+        created_at = invoice.get("created_at", "")[:10]
 
-        result = ""
-        if unpaid:
-            result += "\U0001F534 <b>Unpaid Invoices</b>\n"
-            for u in unpaid:
-                amount = u["payment_requests"][0]["computed_amount_money"]["amount"] / 100
-                result += f"• #{u['invoice_number']} - ${amount:.2f}\nPay: https://app.squareup.com/pay-invoice/{u['id']}\n"
-            result += "\n"
-
-        if paid:
-            result += "\U00002705 <b>Paid Invoices</b>\n"
-            for p in paid[-5:]:
-                amount = p["payment_requests"][0]["computed_amount_money"]["amount"] / 100
-                result += f"• #{p['invoice_number']} - ${amount:.2f}\n"
-
-        return result or "No invoices found."
+        if status in ["UNPAID", "SCHEDULED"]:
+            return f"\U0001F534 <b>Most Recent Invoice</b>\n• #{invoice_number} - ${amount:.2f}\nDate: {created_at}\nPay: https://app.squareup.com/pay-invoice/{invoice_id}"
+        else:
+            return f"\U00002705 <b>Most Recent Paid Invoice</b>\n• #{invoice_number} - ${amount:.2f}\nDate: {created_at}"
 
     except Exception as e:
         print(f"[ERROR] Square Email Lookup: {e}", flush=True)
-        return "An error occurred while retrieving your invoices."
+        return "An error occurred while retrieving your invoice."
 
 # --- PRICING DATA ---
 def fetch_category_prices(category_id, label):
