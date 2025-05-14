@@ -19,7 +19,7 @@ user_profiles = {}
 
 # Commands mapped to category IDs
 commands = {
-    "/allminerprices": 112,
+    "/allminerprices": 31,
     "/btcminerprices": 16,
     "/dogeminerprices": 21,
     "/altminerprices": 22,
