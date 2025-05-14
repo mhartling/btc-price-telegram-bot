@@ -288,9 +288,10 @@ def check_user_messages():
                 "🔧 transformers": "/xfmrprices",
                 "🧩 parts": "/partsprices"
             }
-            category_id = commands.get(mapped[cmd])
-            if category_id:
-                result = fetch_category_prices(category_id)
+            category_info = commands.get(mapped[cmd])
+            if category_info:
+                cat_id, label = category_info
+                result = fetch_category_prices(cat_id, label)
                 send_reply(chat_id, result)
 
         elif cmd == "🛒 shop now":
