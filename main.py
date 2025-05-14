@@ -17,21 +17,21 @@ WC_API_SECRET = os.environ.get("WC_API_SECRET")
 # In-memory store for tracking user names and emails
 user_profiles = {}
 
-# Commands mapped to category IDs
+# Commands mapped to category IDs and labels
 commands = {
-    "/allminerprices": 31,
-    "/btcminerprices": 16,
-    "/dogeminerprices": 21,
-    "/altminerprices": 22,
-    "/aleominerprices": 337,
-    "/alphminerprices": 128,
-    "/etcminerprices": 189,
-    "/kdaminerprices": 192,
-    "/kasminerprices": 102,
-    "/usastockprices": 199,
-    "/pduprices": 105,
-    "/xfmrprices": 106,
-    "/partsprices": 23
+    "/allminerprices": (31, "All Miners"),
+    "/btcminerprices": (16, "BTC Miners"),
+    "/dogeminerprices": (21, "DOGE/LTC Miners"),
+    "/altminerprices": (22, "ALT Miners"),
+    "/aleominerprices": (337, "ALEO Miners"),
+    "/alphminerprices": (128, "ALPH Miners"),
+    "/etcminerprices": (189, "ETC Miners"),
+    "/kdaminerprices": (192, "KDA Miners"),
+    "/kasminerprices": (102, "KAS Miners"),
+    "/usastockprices": (199, "USA Stock"),
+    "/pduprices": (105, "PDUs"),
+    "/xfmrprices": (106, "Transformers"),
+    "/partsprices": (23, "Parts & Accessories")
 }
 
 last_update_id = None
@@ -108,7 +108,7 @@ def fetch_square_invoices_by_email(email):
         return "An error occurred while retrieving your invoices."
 
 # --- PRICING DATA ---
-def fetch_category_prices(category_id):
+def fetch_category_prices(category_id, label):
     auth = HTTPBasicAuth(WC_API_KEY, WC_API_SECRET)
     page = 1
     all_filtered = []
@@ -147,7 +147,8 @@ def fetch_category_prices(category_id):
         if not all_filtered:
             return "No products currently in stock with valid prices."
 
-        message = "Product Prices:\n\n" + "\n".join(all_filtered)
+        today = datetime.now().strftime("%B %d, %Y")
+        message = f"<b>{label} - {today}</b>\n\n" + "\n".join(all_filtered)
         return message
 
     except Exception as e:
